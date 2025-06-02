@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work Log App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    #manual-entry-section {
+      display: none;
+    }
+  </style>
+</head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work Log App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    #manual-entry-section {
+      display: none;
+    }
+    #clock {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      font-weight: 500;
+      color: #4b5563;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div id="clock"></div>
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Rest of the body remains unchanged -->
+  </div>
+
+  <script>
+    // Real-time Israeli clock
+    function updateClock() {
+      const now = new Date().toLocaleString("he-IL", {
+        timeZone: "Asia/Jerusalem",
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      document.getElementById("clock").textContent = now;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Prevent selecting future dates
+    window.addEventListener('DOMContentLoaded', () => {
+      const today = new Date().toISOString().split("T")[0];
+      document.getElementById("manual-date").setAttribute("max", today);
+    });
+  </script>
+</body>
+</html>
+
+<body class="bg-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Settings Section -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">
+        <i class="fas fa-cog mr-2 text-indigo-600"></i> Settings
+      </h2>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Hourly Rate (₪)</label>
+      <input type="number" id="hourly-rate" class="w-32 px-3 py-1 border rounded" placeholder="50.00" min="0" step="0.01" />
+    </div>
+
+    <!-- Punch Clock -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">
+        <i class="fas fa-user-clock mr-2 text-indigo-600"></i> Punch Clock
+      </h2>
+      <div class="text-3xl font-bold mb-4" id="live-timer">00:00:00</div>
+      <div class="flex space-x-4 mb-4">
+        <button id="punch-in" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Punch In</button>
+        <button id="punch-out" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded" disabled>Punch Out</button>
+      </div>
+    </div>
+
+    <!-- Weekly Shifts Table + Add Shift Button -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-800">
+          <i class="fas fa-calendar-alt mr-2 text-indigo-600"></i> Weekly Shifts
+        </h2>
+        <button id="toggle-add-shift" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm">
+          <i class="fas fa-plus mr-1"></i> Add New Shift
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200" id="shift-table-body">
+            <!-- Dynamic rows here -->
+          </tbody>
+        </table>
+      </div>
+      <div class="text-right text-sm text-gray-700 mt-2">Total: <span id="weekly-total">0h 0m</span></div>
+    </div>
+
+    <!-- Manual Entry Section (Initially Hidden) -->
+    <div id="manual-entry-section" class="bg-white rounded-xl shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">
+        <i class="fas fa-plus mr-2 text-indigo-600"></i> Add Shift Manually
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <input type="date" id="manual-date" class="w-full px-3 py-2 border rounded" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+          <input type="time" id="manual-start" class="w-full px-3 py-2 border rounded" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+          <input type="time" id="manual-end" class="w-full px-3 py-2 border rounded" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <input type="text" id="manual-notes" class="w-full px-3 py-2 border rounded" placeholder="(Optional)" />
+        </div>
+      </div>
+      <div class="mt-4 text-right">
+        <button id="add-shift-btn" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded">
+          <i class="fas fa-check mr-2"></i> Add Shift
+        </button>
+      </div>
+    </div>
+
+    <!-- Earnings Section -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">
+        <i class="fas fa-dollar-sign mr-2 text-indigo-600"></i> Earnings
+      </h2>
+      <p class="text-lg font-bold text-gray-700">Total Earnings: ₪<span id="total-earnings">0.00</span></p>
+      <button id="export-excel" class="mt-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Export to Excel</button>
+      <button id="export-pdf" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded ml-2">Export to PDF</button>
+    </div>
+  </div>
+
+  <script>
+    let hourlyRate = 0;
+    let shifts = [];
+    let punchStart = null;
+    let timerInterval;
+
+    const hourlyRateInput = document.getElementById('hourly-rate');
+    const earningsDisplay = document.getElementById('total-earnings');
+    const shiftTableBody = document.getElementById('shift-table-body');
+    const weeklyTotalDisplay = document.getElementById('weekly-total');
+    const liveTimer = document.getElementById('live-timer');
+    const punchInBtn = document.getElementById('punch-in');
+    const punchOutBtn = document.getElementById('punch-out');
+
+    function formatTime(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const hrs = Math.floor(totalSeconds / 3600);
+      const mins = Math.floor((totalSeconds % 3600) / 60);
+      return `${hrs}h ${mins}m`;
+    }
+
+    function updateEarnings() {
+      const totalMs = shifts.reduce((sum, s) => sum + s.duration, 0);
+      const totalHours = totalMs / (1000 * 60 * 60);
+      earningsDisplay.textContent = (totalHours * hourlyRate).toFixed(2);
+    }
+
+    function updateShiftTable() {
+      shiftTableBody.innerHTML = '';
+      let total = 0;
+      for (const shift of shifts) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-6 py-2 text-sm text-gray-700">${shift.date}</td>
+          <td class="px-6 py-2 text-sm text-gray-700">${shift.startTime} - ${shift.endTime}</td>
+          <td class="px-6 py-2 text-sm text-gray-700">${formatTime(shift.duration)}</td>
+          <td class="px-6 py-2 text-sm text-gray-700">${shift.notes || ''}</td>
+        `;
+        shiftTableBody.appendChild(tr);
+        total += shift.duration;
+      }
+      weeklyTotalDisplay.textContent = formatTime(total);
+    }
+
+    hourlyRateInput.addEventListener('input', () => {
+      hourlyRate = parseFloat(hourlyRateInput.value) || 0;
+      updateEarnings();
+    });
+
+    punchInBtn.addEventListener('click', () => {
+      punchStart = Date.now();
+      punchInBtn.disabled = true;
+      punchOutBtn.disabled = false;
+      timerInterval = setInterval(() => {
+        const elapsed = Date.now() - punchStart;
+        const hrs = String(Math.floor(elapsed / 3600000)).padStart(2, '0');
+        const mins = String(Math.floor((elapsed % 3600000) / 60000)).padStart(2, '0');
+        const secs = String(Math.floor((elapsed % 60000) / 1000)).padStart(2, '0');
+        liveTimer.textContent = `${hrs}:${mins}:${secs}`;
+      }, 1000);
+    });
+
+    punchOutBtn.addEventListener('click', () => {
+      clearInterval(timerInterval);
+      const end = Date.now();
+      const duration = end - punchStart;
+      const startDate = new Date(punchStart);
+      const endDate = new Date(end);
+
+      shifts.push({
+        date: startDate.toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'long' }),
+        startTime: startDate.toTimeString().substring(0, 5),
+        endTime: endDate.toTimeString().substring(0, 5),
+        duration,
+        notes: ''
+      });
+
+      updateEarnings();
+      updateShiftTable();
+      punchStart = null;
+      liveTimer.textContent = "00:00:00";
+      punchInBtn.disabled = false;
+      punchOutBtn.disabled = true;
+    });
+
+    document.getElementById('toggle-add-shift').addEventListener('click', () => {
+      const manualSection = document.getElementById('manual-entry-section');
+      manualSection.style.display = manualSection.style.display === 'none' ? 'block' : 'none';
+    });
+
+    document.getElementById('add-shift-btn').addEventListener('click', () => {
+      const date = document.getElementById('manual-date').value;
+      const start = document.getElementById('manual-start').value;
+      const end = document.getElementById('manual-end').value;
+      const notes = document.getElementById('manual-notes').value;
+
+      if (!date || !start || !end) return alert('Fill in date, start, and end times.');
+
+      const startDateTime = new Date(`${date}T${start}`);
+      const endDateTime = new Date(`${date}T${end}`);
+      if (endDateTime <= startDateTime) return alert('End time must be after start time.');
+
+      const duration = endDateTime - startDateTime;
+      shifts.push({
+        date: new Date(date).toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'long' }),
+        startTime: start,
+        endTime: end,
+        duration,
+        notes
+      });
+
+      updateShiftTable();
+      updateEarnings();
+
+      document.getElementById('manual-date').value = '';
+      document.getElementById('manual-start').value = '';
+      document.getElementById('manual-end').value = '';
+      document.getElementById('manual-notes').value = '';
+    });
+  </script>
+</body>
+</html>
